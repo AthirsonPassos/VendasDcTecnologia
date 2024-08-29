@@ -26,5 +26,10 @@ class Cliente extends Model
 
         return $clientes;
     }
+
+    public function vendas()
+    {
+        return $this->hasMany(Venda::class, 'cliente_id');
+    }
 }
 

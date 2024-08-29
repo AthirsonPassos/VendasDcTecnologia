@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ClientesController;
 use App\Http\Controllers\ProdutosController;
+use App\Http\Controllers\VendaController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -41,4 +42,20 @@ Route::prefix('clientes')->group(function () {
     Route::put('/atualizarCliente/{id}', [ClientesController::class, 'atualizarCliente'])->name('atualizar.cliente');
     //Excluir Clientes
     Route::delete('/delete', [ClientesController::class, 'delete'])->name('cliente.delete');
+});
+
+Route::prefix('vendas')->group(function () {
+    Route::get('/', [VendaController::class, 'index'])->name('vendas.index');
+    //Cadastro de Vendas
+    Route::get('/cadastrarVenda', [VendaController::class, 'cadastrarVendas'])->name('cadastrar.venda');
+    Route::post('/cadastrarVenda', [VendaController::class, 'cadastrarVendas'])->name('cadastrar.venda');
+    //Atualizar Vendas
+    Route::get('/atualizarVenda/{id}', [VendaController::class, 'atualizarVenda'])->name('atualizar.venda');
+    Route::put('/atualizarVenda/{id}', [VendaController::class, 'atualizarVenda'])->name('atualizar.venda');
+    //Excluir Vendas
+    Route::delete('/delete', [VendaController::class, 'delete'])->name('venda.delete');
+    
+    
+    //Route::get('/enviaComprovantePorEmail/{id}', [VendaController::class, 'enviaComprovantePorEmail'])->name('enviaComprovantePorEmail.venda');
+
 });
