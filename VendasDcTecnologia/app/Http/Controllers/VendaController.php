@@ -2,150 +2,104 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\FormRequestVenda;
-use App\Models\Cliente;
-use App\Models\Componentes;
-use App\Models\ParcelasVenda;
-use App\Models\Produto;
 use App\Models\Venda;
-use App\Models\ProdutoVenda;
-use Brian2694\Toastr\Facades\Toastr;
+use App\Models\Parcela;
+use App\Models\Cliente;
+use App\Models\Produto;
 use Illuminate\Http\Request;
+use App\Http\Requests\FormRequestVenda;
+use Brian2694\Toastr\Facades\Toastr;
+use DB;
+use Illuminate\Support\Facades\DB as FacadesDB;
+use PhpParser\Node\Stmt\Else_;
 
 class VendaController extends Controller
 {
-    public function index(Request $request)
+    protected $venda;
+    public function __construct(Venda $venda)  
     {
-        $search = $request->input('pesquisar', '');
-
-        $findVenda = Venda::with(['produtos', 'cliente'])
-            ->where(function ($query) use ($search) {
-                if ($search) {
-                    $query->where('numeroVenda', 'LIKE', "%{$search}%")
-                          ->orWhereHas('produtos', function ($query) use ($search) {
-                              $query->where('nome', 'LIKE', "%{$search}%");
-                          })
-                          ->orWhereHas('cliente', function ($query) use ($search) {
-                              $query->where('nome', 'LIKE', "%{$search}%");
-                          });
-                }
-            })
-            ->paginate(10);
-
-        return view('pages.vendas.paginacao', compact('findVenda'));
+        $this->venda = $venda;
+    }
+    public function index()
+    {
+        $vendas = Venda::with('cliente')->get();
+        return view('pages.vendas.paginacao', compact('vendas'));
     }
 
-    public function deletarVenda($id)
+
+    public function cadastrarVendas()
     {
-        $venda = Venda::find($id);
-        if ($venda) {
-            $venda->delete();
-            Toastr::success('Venda excluída com sucesso.');
-        } else {
-            Toastr::error('Venda não encontrada.');
-        }
-        return redirect()->route('vendas.index');
+        $clientes = Cliente::all();
+        $produtos = Produto::all();
+        return view('pages.vendas.create', compact('clientes', 'produtos'));
     }
 
-    public function cadastrarVendas(Request $request)
+    public function store(FormRequestVenda $request)
     {
-        $findNumeracao = Venda::max('numeroVenda') + 1;
-        $findProduto = Produto::all();
-        $findCliente = Cliente::all();
-
-        if ($request->method() == "POST") {
-            $data = $request->all();
-
-            $validatedData = $request->validate([
-                'cliente_id' => 'required|exists:clientes,id',
-                'valorTotal' => 'required|numeric|min:0',
-                'produtos' => 'required|array|min:1',
-                'produtos.*' => 'exists:produtos,id', // Validação para cada produto selecionado
-                'forma_pagamento' => 'required|in:avista,parcelado',
-                'parcelas' => 'nullable|array',
-                'parcelas.*.valorParcela' => 'nullable|numeric|min:0',
-                'parcelas.*.dataVencimento' => 'nullable|date'
-            ]);
-
-            $componentes = new Componentes();
-            $data['valorTotal'] = $componentes->formatacaoMascaraDinheiroDecimal($data['valorTotal']);
-
-            // Criar a venda
+        DB::transaction(function() use ($request) {
             $venda = Venda::create([
-                'numeroVenda' => $findNumeracao,
-                'cliente_id' => $data['cliente_id'],
-                'valorTotal' => $data['valorTotal'],
+                'cliente_id' => $request->cliente_id,
+                'valor_total' => $request->valorTotal,
+                'a_vista' => $request->forma_pagamento === 'avista'
             ]);
 
-            // Associar produtos à venda
-            foreach ($data['produtos'] as $produto_id) {
-                ProdutoVenda::create([
-                    'venda_id' => $venda->id,
-                    'produto_id' => $produto_id
-                ]);
-            }
-
-            // Salvar as parcelas, se houver
-            if ($data['forma_pagamento'] === 'parcelado' && isset($data['parcelas'])) {
-                foreach ($data['parcelas'] as $parcela) {
-                    $venda->parcelas()->create([
-                        'valor' => $parcela['valorParcela'],
-                        'data_vencimento' => $parcela['dataVencimento'],
+            if ($request->forma_pagamento === 'parcelado') {
+                foreach ($request->parcelas as $parcela) {
+                    Parcela::create([
+                        'venda_id' => $venda->id,
+                        'valor' => $parcela['valor'],
+                        'data_vencimento' => $parcela['data_vencimento'],
                     ]);
                 }
             }
-
-            Toastr::success('Dados gravados com sucesso.');
-            return redirect()->route('vendas.index');
-        }
-
-        return view('pages.vendas.create', compact('findNumeracao', 'findProduto', 'findCliente'));
+        });
+        Toastr::success('Dados gravados com sucesso.');
+        return redirect()->route('venda.index');
     }
 
-    public function atualizarVenda(FormRequestVenda $request, $id)
+    public function atualizarVenda($id)
     {
-        if ($request->method() == "PUT") {
-            $data = $request->all();
+        $venda = Venda::with('parcelas')->findOrFail($id);
+        $clientes = Cliente::all();
+        return view('pages.vendas.atualiza', compact('venda', 'clientes'));
+    }
 
-            $componentes = new Componentes();
-            $data['valorTotal'] = $componentes->formatacaoMascaraDinheiroDecimal($data['valorTotal']);
-
-            $venda = Venda::find($id);
-
+    public function update(FormRequestVenda $request, $id)
+    {
+        DB::transaction(function() use ($request, $id) {
+            $venda = Venda::findOrFail($id);
+    
+            // Atualiza os dados da venda
             $venda->update([
-                'cliente_id' => $data['cliente_id'],
-                'valorTotal' => $data['valorTotal'],
+                'cliente_id' => $request->cliente_id,
+                'valor_total' => $request->valorTotal,
+                'a_vista' => $request->forma_pagamento === 'avista'
             ]);
-
-            // Atualizar produtos associados à venda
-            ProdutoVenda::where('venda_id', $venda->id)->delete();
-            foreach ($data['produtos'] as $produto_id) {
-                ProdutoVenda::create([
-                    'venda_id' => $venda->id,
-                    'produto_id' => $produto_id
-                ]);
-            }
-
-            // Atualizar as parcelas, se houver
-            if (isset($data['parcelas'])) {
-                // Remover as parcelas antigas
+    
+            // Remove parcelas existentes se a forma de pagamento for alterada
+            if ($request->forma_pagamento === 'parcelado') {
                 $venda->parcelas()->delete();
-
-                // Adicionar as novas parcelas
-                foreach ($data['parcelas'] as $parcela) {
-                    ParcelasVenda::create([
-                        'venda_id' => $venda->id,
-                        'valor' => $parcela['valorParcela'],
-                        'data_vencimento' => $parcela['dataVencimento'],
-                    ]);
+    
+                // Verifica se $request->parcelas está definido e não é nulo
+                if ($request->has('parcelas') && is_array($request->parcelas)) {
+                    foreach ($request->parcelas as $parcela) {
+                        // Verifica se cada parcela tem os dados necessários
+                        if (isset($parcela['valor']) && isset($parcela['data_vencimento'])) {
+                            Parcela::create([
+                                'venda_id' => $venda->id,
+                                'valor' => $parcela['valor'],
+                                'data_vencimento' => $parcela['data_vencimento'],
+                            ]);
+                        }
+                    }
                 }
+            } else {
+                // Se a forma de pagamento for alterada para 'à vista', remove parcelas
+                $venda->parcelas()->delete();
             }
-
-            Toastr::success('Dados atualizados com sucesso.');
-            return redirect()->route('vendas.index');
-        }
-
-        $findVenda = Venda::where('id', $id)->first();
-        return view('pages.vendas.atualiza', compact('findVenda'));
+        });
+    
+        Toastr::success('Dados atualizados com sucesso.');
+        return redirect()->route('venda.index');
     }
 }

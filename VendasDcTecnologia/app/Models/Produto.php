@@ -26,6 +26,6 @@ class Produto extends Model
 
     public function vendas()
     {
-        return $this->hasMany(Venda::class, 'produto_id');
+        return $this->belongsToMany(Venda::class, 'venda_produto')->withPivot('quantidade', 'preco_total')->withTimestamps();
     }
 }
