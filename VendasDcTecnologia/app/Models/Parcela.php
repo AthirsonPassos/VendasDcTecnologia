@@ -8,11 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Parcela extends Model
 {
     use HasFactory;
-    protected $fillable = [
-        'venda_id',
-        'valor',
-        'data_vencimento',
-    ];
+    protected $fillable = ['venda_id', 'valor', 'data_vencimento'];
 
     public function venda()
     {

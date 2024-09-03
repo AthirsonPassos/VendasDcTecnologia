@@ -11,12 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('vendas', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('cliente_id')->constrained('clientes')->onDelete('cascade');
-            $table->decimal('valor_total', 10, 2);
-            $table->boolean('a_vista')->default(true);
-            $table->timestamps();
+        Schema::table('venda_produto', function (Blueprint $table) {
+            $table->decimal('valor', 10, 2)->default(0.00)->change();
         });
     }
 
@@ -25,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('vendas');
+        Schema::table('venda_produto', function (Blueprint $table) {
+            $table->decimal('valor', 10, 2)->nullable()->change();
+        });
     }
 };

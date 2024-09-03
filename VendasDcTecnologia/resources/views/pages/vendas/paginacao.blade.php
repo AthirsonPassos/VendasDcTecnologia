@@ -1,18 +1,9 @@
 @extends('index')
 
 @section('content')
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Lista de Vendas</h1>
-        <!-- Botão para cadastrar nova venda-->
-        <a href="{{ route('cadastrar.venda') }}" class="btn btn-success">Cadastrar Nova Venda</a>
-    </div>
-    @if (session('success'))
-        <div class="alert alert-success">
-            {{ session('success') }}
-        </div>
-    @endif
+    <a href="{{ route('cadastrar.venda') }}" class="btn btn-success">Cadastrar Venda</a>
 
-    <table class="table table-striped">
+    <table class="table">
         <thead>
             <tr>
                 <th>ID</th>
@@ -28,9 +19,14 @@
                     <td>{{ $venda->id }}</td>
                     <td>{{ $venda->cliente->nome }}</td>
                     <td>R$ {{ number_format($venda->valor_total, 2, ',', '.') }}</td>
-                    <td>{{ $venda->a_vista ? 'À vista' : 'Parcelado' }}</td>
+                    <td>{{ $venda->is_avista ? 'À vista' : 'Parcelado' }}</td>
                     <td>
-                        <a href="{{ route('atualizar.venda', $venda->id) }}" class="btn btn-sm btn-primary">Editar</a>
+                        <a href="{{ route('atualiza.venda', $venda->id) }}" class="btn btn-primary">Editar</a>
+                        <form action="{{ route('venda.delete', $venda->id) }}" method="POST" style="display:inline-block;">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger">Excluir</button>
+                        </form>
                     </td>
                 </tr>
             @endforeach

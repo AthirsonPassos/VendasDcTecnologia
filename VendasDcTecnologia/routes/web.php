@@ -45,16 +45,16 @@ Route::prefix('clientes')->group(function () {
 });
 
 Route::prefix('vendas')->group(function () {
-    Route::get('/', [VendaController::class, 'index'])->name('venda.index');
+    // Listar todas as vendas
+    Route::get('/', [VendaController::class, 'index'])->name('venda.index');    
     //Cadastro de Vendas
-    Route::get('/cadastrarVendas', [VendaController::class, 'cadastrarVendas'])->name('cadastrar.venda');
-    Route::post('/cadastrarVendas', [VendaController::class, 'store'])->name('cadastrar.venda');
-    //Atualizar Vendas
-    Route::get('/atualizarVenda/{id}', [VendaController::class, 'atualizarVenda'])->name('atualizar.venda');
-    Route::put('/atualizarVenda/{id}', [VendaController::class, 'update'])->name('atualizar.venda');
+    Route::get('/cadastrar', [VendaController::class, 'cadastrarVendas'])->name('cadastrar.venda');
+    Route::post('/cadastrar', [VendaController::class, 'store'])->name('cadastrar.venda');    
+     //Atualizar Vendas
+    Route::get('/editar/{id}', [VendaController::class, 'atualizarVenda'])->name('atualiza.venda');    
+    Route::put('/editar/{id}', [VendaController::class, 'update'])->name('atualiza.venda');    
     //Excluir Vendas
-    Route::delete('/delete', [VendaController::class, 'delete'])->name('venda.delete');
-    
+    Route::delete('/deletar/{id}', [VendaController::class, 'delete'])->name('venda.delete');    
     
     //Route::get('/enviaComprovantePorEmail/{id}', [VendaController::class, 'enviaComprovantePorEmail'])->name('enviaComprovantePorEmail.venda');
 
